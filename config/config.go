@@ -1,24 +1,29 @@
 package config
 
 import (
-	"github.com/spf13/viper"
+	"os"
+	
+	"github.com/kelseyhightower/envconfig"
+	"github.com/joho/godotenv"
 )
 
 type Config struct {
-	Database DatabaseConfig
+	Database *DatabaseConfig
 }
 
 func LoadConfig() (config Config, err error) {
-    viper.AddConfigPath("$CONFIG_PATH")
-    viper.SetConfigName("config")
-    viper.SetConfigType("env")
-    viper.AutomaticEnv()
+	environment := os.Getenv("ENVIRONMENT")
+	if environment == "dev" {
+		err = godotenv.Load(".env")
+		if err != nil {
+			return
+		}
+	}
+	
+	err = envconfig.Process("app", &config)
+	if err != nil {
+		return
+	}
 
-    err = viper.ReadInConfig()
-    if err != nil {
-        return
-    }
-
-    err = viper.Unmarshal(&config)
-    return
+	return
 }

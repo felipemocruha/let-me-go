@@ -2,13 +2,11 @@ package db
 
 import (
 	"fmt"
-	"context"
 	
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
-	"github.com/rs/zerolog/log"
 	"github.com/felipemocruha/let-me-go/config"
-	"go.uber.org/fx"
+	"go.uber.org/zap"
 )
 
 type Postgres struct {
@@ -23,23 +21,14 @@ type Database interface {
 	Close() error
 }
 
-func NewDatabase(lc fx.Lifecycle, config config.Config) Database {
+func NewDatabase(config config.Config, logger *zap.SugaredLogger) (Database, error) {
 	conn, err := sqlx.Connect("postgres", makeConnStr(config))
 	if err != nil {
-		log.Fatal().Msgf("failed to create database connection: %v", err)
+		logger.Error("database connection: %v", err)
+		return nil, err
 	}
-	postgres := &Postgres{conn}
 
-	lc.Append(fx.Hook{
-		OnStart: func(context.Context) error {
-			return nil
-		},
-		OnStop: func(ctx context.Context) error {
-			return postgres.Close()
-		},
-	})	
-
-	return postgres
+	return &Postgres{conn}, nil
 }
 
 func makeConnStr(config config.Config) string {
